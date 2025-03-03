@@ -2,6 +2,7 @@
 module Main where
 
 import Cliente
+import LojaSimulador 
 
 -- Menu principal (acessível apenas após login)
 menuPrincipal :: Cliente -> Sistema -> IO Sistema
@@ -40,8 +41,21 @@ menuInicial sistema = do
       maybeCliente <- autenticarCliente sistema
       case maybeCliente of
         Just cliente -> do
-          novoSistema <- menuPrincipal cliente sistema
-          menuInicial novoSistema
+          putStrLn "\n--- Opções ---"
+          putStrLn "1. Dados Cadastrais"
+          putStrLn "2. Acessar Loja"
+          putStrLn "Escolha uma opção: "
+          
+          opcao2 <- getLine
+
+          case opcao2 of
+            "1" -> do
+              novoSistema <- menuPrincipal cliente sistema
+              menuInicial novoSistema
+            "2" -> do
+              let lojaEx = exemploLojaProdutos --Exemplo de loja que é carregado automaticamente
+              novoSistema <- menuCompras cliente sistema lojaEx
+              menuInicial novoSistema
         Nothing -> menuInicial sistema
     "2" -> do
       novoSistema <- cadastrarCliente sistema
@@ -50,6 +64,28 @@ menuInicial sistema = do
     _ -> do
       putStrLn "Opção inválida! Tente novamente."
       menuInicial sistema
+
+
+menuCompras :: Cliente -> Sistema -> Loja -> IO Sistema
+menuCompras cliente sistema loja = do
+  putStrLn "\n--- Lojas ---"
+  putStrLn "1. Visualizar Loja e Produtos"
+  putStrLn "2. Comprar"
+  putStrLn "3. Voltar"
+  
+  opcao <- getLine
+  case opcao of
+    "1" -> do
+      exibeLoja loja
+      menuCompras cliente sistema loja
+    "2" -> do
+        putStrLn "Escreva o nome do Produto que você quer comprar"
+        produto <- getLine
+        compra cliente (retornaProduto loja produto) sistema
+        menuCompras cliente sistema loja
+    "3" -> do
+      return sistema
+
 
 -- Função principal
 main :: IO ()

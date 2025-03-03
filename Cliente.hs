@@ -2,6 +2,8 @@
 module Cliente where
 
 import Data.List (find)
+import Text.XHtml (input)
+import Text.Read (Lexeme(String))
 
 -- Definição do tipo de dados para representar um cliente
 data Cliente = Cliente
@@ -11,7 +13,8 @@ data Cliente = Cliente
     dataNascimento :: String,
     cpf :: String,
     endereco :: String,
-    telefone :: String
+    telefone :: String,
+    saldoCliente :: Float
   }
   deriving (Show, Eq)
 
@@ -36,7 +39,9 @@ cadastrarCliente sistema = do
   endereco <- getLine
   putStr "Telefone: "
   telefone <- getLine
-  let novoCliente = Cliente {nome = nome, email = email, senha = senha, dataNascimento = dataNascimento, cpf = cpf, endereco = endereco, telefone = telefone}
+  putStr "Faça uma recarga de saldo:"
+  recarga <- getLine 
+  let novoCliente = Cliente {nome = nome, email = email, senha = senha, dataNascimento = dataNascimento, cpf = cpf, endereco = endereco, telefone = telefone, saldoCliente = read recarga :: Float}
   putStrLn "Cliente cadastrado com sucesso!"
   return (novoCliente : sistema)
 
@@ -51,10 +56,10 @@ autenticarCliente :: Sistema -> IO (Maybe Cliente)
 autenticarCliente sistema = do
   putStrLn "Login"
   putStr "Email: "
-  email <- getLine
+  emailinput <- getLine
   putStr "Senha: "
-  senha <- getLine
-  let clienteEncontrado = find (\cliente -> email == email cliente && senha == senha cliente) sistema
+  senhainput <- getLine
+  let clienteEncontrado = find (\cliente -> emailinput == email cliente && senhainput == senha cliente) sistema
   case clienteEncontrado of
     Just cliente -> do
       putStrLn $ "Bem-vindo, " ++ nome cliente ++ "!"
@@ -78,15 +83,17 @@ atualizarDadosCliente cliente sistema = do
   novoEndereco <- getLine
   putStr $ "Telefone atual: " ++ telefone cliente ++ "\nNovo Telefone: "
   novoTelefone <- getLine
-
+  let exemplo = show (saldoCliente cliente)
+  putStr $ "Saldo atual: " ++  exemplo ++ "\n Novo Saldo: "
+  novoSaldo <- getLine
   -- Atualiza apenas os campos que foram modificados
   let nomeAtualizado = if null novoNome then nome cliente else novoNome
   let dataNascimentoAtualizada = if null novaDataNascimento then dataNascimento cliente else novaDataNascimento
   let cpfAtualizado = if null novoCpf then cpf cliente else novoCpf
   let enderecoAtualizado = if null novoEndereco then endereco cliente else novoEndereco
   let telefoneAtualizado = if null novoTelefone then telefone cliente else novoTelefone
-
-  let clienteAtualizado =
+  let saldoClienteAtualizado = if null novoSaldo then saldoCliente cliente else read novoSaldo ::Float
+  let clienteAtualizado = 
         Cliente
           { nome = nomeAtualizado,
             email = email cliente, -- Email não pode ser alterado
@@ -94,10 +101,28 @@ atualizarDadosCliente cliente sistema = do
             dataNascimento = dataNascimentoAtualizada,
             cpf = cpfAtualizado,
             endereco = enderecoAtualizado,
-            telefone = telefoneAtualizado
+            telefone = telefoneAtualizado,  
+            saldoCliente = saldoClienteAtualizado
           }
 
   -- Remove o cliente antigo e adiciona o cliente atualizado
   let sistemaAtualizado = clienteAtualizado : filter (/= cliente) sistema
   putStrLn "Dados atualizados com sucesso!"
   return sistemaAtualizado
+
+--Jefferson, função para fazer uma recarga de saldo no cliente, recebe o cliente, um valor para recarga, o sistema e atualiza ele
+
+fazerRecarga :: Cliente -> Float -> Sistema -> IO Sistema
+fazerRecarga cliente recarga sistema = do
+  -- Faz a recarga
+  let novoSaldo = recarga + saldoCliente cliente
+  -- Atualiza a lista de clientes no sistema, adicionando o cliente com a recarga nova
+  let novoCliente = cliente { saldoCliente = novoSaldo }
+
+  let sistemaAtualizado = novoCliente : filter (/= cliente) sistema
+  putStrLn "Dados atualizados com sucesso!"
+  return sistemaAtualizado
+
+  
+
+    
