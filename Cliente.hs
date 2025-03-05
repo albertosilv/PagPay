@@ -32,7 +32,7 @@ data CartaoCredito = CartaoCredito
 -- Tipo de dados para representar o sistema de gerenciamento de clientes
 type Sistema = [Cliente]
 
--- Função para cadastrar um novo cliente
+-- Função para cadastrar um novo cliente.
 cadastrarCliente :: Sistema -> IO Sistema
 cadastrarCliente sistema = do
   putStrLn "Cadastro de Cliente"
@@ -56,10 +56,11 @@ cadastrarCliente sistema = do
   putStrLn "Cliente cadastrado com sucesso!"
   return (novoCliente : sistema)
 
+-- Função para cadastrar um cartão.
 cadastrarCartao :: Cliente -> CartaoCredito -> Cliente
 cadastrarCartao cliente cartao = cliente {cartao = Just cartao}
 
--- Função para validar dados do cartão
+-- Função para validar dados do cartão.
 validarDadosCartao :: String -> String -> String -> String -> Bool 
 validarDadosCartao numero titular validade cvv = 
     length numero == 16 && -- verifica se tem 16 dígitos
@@ -67,13 +68,13 @@ validarDadosCartao numero titular validade cvv =
     not (null titular) && -- verifica se titular não está vazio
     length validade == 5 -- formato MM/AA
 
--- Função para listar todos os clientes cadastrados
+-- Função para listar todos os clientes cadastrados.
 listarClientes :: Sistema -> IO ()
 listarClientes sistema = do
   putStrLn "Clientes cadastrados:"
   mapM_ print sistema
 
--- Função para autenticar um cliente
+-- Função para autenticar um cliente.
 autenticarCliente :: Sistema -> IO (Maybe Cliente)
 autenticarCliente sistema = do
   putStrLn "Login"
@@ -90,7 +91,7 @@ autenticarCliente sistema = do
       putStrLn "Email ou senha incorretos."
       return Nothing
 
--- Função para atualizar os dados cadastrais do cliente
+-- Função para atualizar os dados cadastrais do cliente.
 atualizarDadosCliente :: Cliente -> Sistema -> IO Sistema
 atualizarDadosCliente cliente sistema = do
   putStrLn "\n--- Atualizar Dados Cadastrais ---"
@@ -145,7 +146,3 @@ fazerRecarga cliente recarga sistema = do
   let sistemaAtualizado = novoCliente : filter (/= cliente) sistema
   putStrLn "Dados atualizados com sucesso!"
   return sistemaAtualizado
-
-  
-
-    
