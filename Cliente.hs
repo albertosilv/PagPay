@@ -14,9 +14,20 @@ data Cliente = Cliente
     cpf :: String,
     endereco :: String,
     telefone :: String,
-    saldoCliente :: Float
+    saldoCliente :: Float,
+    cartao :: Maybe CartaoCredito
   }
   deriving (Show, Eq)
+
+-- Definição do tipo de dados para representar um cartão de crédito de um cliente
+data CartaoCredito = CartaoCredito 
+  { numeroCartao :: String,
+    nomeTitular :: String,
+    dataValidade :: String,
+    cvv :: String,
+    limite :: Float,
+    seguro :: Bool
+  } deriving (Show, Eq)
 
 -- Tipo de dados para representar o sistema de gerenciamento de clientes
 type Sistema = [Cliente]
@@ -25,25 +36,36 @@ type Sistema = [Cliente]
 cadastrarCliente :: Sistema -> IO Sistema
 cadastrarCliente sistema = do
   putStrLn "Cadastro de Cliente"
-  putStr "Nome: "
+  putStrLn "Nome: "
   nome <- getLine
-  putStr "Email: "
+  putStrLn "Email: "
   email <- getLine
-  putStr "Senha: "
+  putStrLn "Senha: "
   senha <- getLine
-  putStr "Data de Nascimento (DD/MM/AAAA): "
+  putStrLn "Data de Nascimento (DD/MM/AAAA): "
   dataNascimento <- getLine
-  putStr "CPF: "
+  putStrLn "CPF: "
   cpf <- getLine
-  putStr "Endereço: "
+  putStrLn "Endereço: "
   endereco <- getLine
-  putStr "Telefone: "
+  putStrLn "Telefone: "
   telefone <- getLine
-  putStr "Faça uma recarga de saldo:"
+  putStrLn "Faça uma recarga de saldo:"
   recarga <- getLine 
-  let novoCliente = Cliente {nome = nome, email = email, senha = senha, dataNascimento = dataNascimento, cpf = cpf, endereco = endereco, telefone = telefone, saldoCliente = read recarga :: Float}
+  let novoCliente = Cliente {nome = nome, email = email, senha = senha, dataNascimento = dataNascimento, cpf = cpf, endereco = endereco, telefone = telefone, saldoCliente = read recarga :: Float, cartao = Nothing}
   putStrLn "Cliente cadastrado com sucesso!"
   return (novoCliente : sistema)
+
+cadastrarCartao :: Cliente -> CartaoCredito -> Cliente
+cadastrarCartao cliente cartao = cliente {cartao = Just cartao}
+
+-- Função para validar dados do cartão
+validarDadosCartao :: String -> String -> String -> String -> Bool 
+validarDadosCartao numero titular validade cvv = 
+    length numero == 16 && -- verifica se tem 16 dígitos
+    length cvv == 3 && -- verifica se CVV tem 3 dígitos
+    not (null titular) && -- verifica se titular não está vazio
+    length validade == 5 -- formato MM/AA
 
 -- Função para listar todos os clientes cadastrados
 listarClientes :: Sistema -> IO ()
@@ -55,9 +77,9 @@ listarClientes sistema = do
 autenticarCliente :: Sistema -> IO (Maybe Cliente)
 autenticarCliente sistema = do
   putStrLn "Login"
-  putStr "Email: "
+  putStrLn "Email: "
   emailinput <- getLine
-  putStr "Senha: "
+  putStrLn "Senha: "
   senhainput <- getLine
   let clienteEncontrado = find (\cliente -> emailinput == email cliente && senhainput == senha cliente) sistema
   case clienteEncontrado of
@@ -102,7 +124,8 @@ atualizarDadosCliente cliente sistema = do
             cpf = cpfAtualizado,
             endereco = enderecoAtualizado,
             telefone = telefoneAtualizado,  
-            saldoCliente = saldoClienteAtualizado
+            saldoCliente = saldoClienteAtualizado,
+            cartao = cartao cliente
           }
 
   -- Remove o cliente antigo e adiciona o cliente atualizado
