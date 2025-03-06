@@ -2,8 +2,9 @@
 module Main where
 
 import Cliente
-import LojaSimulador ( exemploLojaProdutos, exibeLoja, Loja )
+import LojaSimulador ( exemploLojaProdutos, exibeLoja, Loja, retornaProduto, compra )
 import Data.List (find)
+import Data.Maybe (fromMaybe)
 
 -- Menu inicial (login ou cadastro).
 menuInicial :: Sistema -> IO ()
@@ -33,6 +34,9 @@ menuInicial sistema = do
 -- Menu principal do cliente (apos o login).
 menuAposLogin :: Cliente -> Sistema -> IO ()
 menuAposLogin cliente sistema = do
+  let clienteAtual = Data.Maybe.fromMaybe
+        cliente (find (\ c -> nome c == nome cliente) sistema)
+
   putStrLn "\n--- Menu Principal ---"
   putStrLn "1. Opcoes"
   putStrLn "2. Acessar Loja"
@@ -47,12 +51,12 @@ menuAposLogin cliente sistema = do
 
   case opcao2 of
     "1" -> do
-      novoSistema <- menuPrincipal cliente sistema
+      novoSistema <- menuPrincipal clienteAtual sistema
       menuInicial novoSistema
     "2" -> do
       let lojaEx = exemploLojaProdutos
-      novoSistema <- menuCompras cliente sistema lojaEx
-      menuInicial novoSistema
+      novoSistema <- menuCompras clienteAtual sistema lojaEx
+      menuAposLogin clienteAtual novoSistema
     "3" -> do -- Cadastra um  novo cartão de credito para o cliente.
       putStrLn "Cadastro de Cartao de Credito"
       putStrLn "Numero do Cartao: "
@@ -69,22 +73,22 @@ menuAposLogin cliente sistema = do
         then do
           let limiteFloat = (read limite :: Float)
           let cartaoNovo = CartaoCredito numero titular validade cvv limiteFloat False -- Cria um cartao novo com todos os dados.
-          let clienteComCartao = cadastrarCartao cliente cartaoNovo -- Atribui o cartao ao cliente.
-          let sistemaNovo = clienteComCartao : filter (/= cliente) sistema
+          let clienteComCartao = cadastrarCartao clienteAtual cartaoNovo -- Atribui o cartao ao cliente.
+          let sistemaNovo = clienteComCartao : filter (/= clienteAtual) sistema
           putStrLn "Cartao de Credito cadastrado com sucesso!"
           putStrLn $ "Limite inicial do cartao: R$ " ++ show limiteFloat
           menuAposLogin clienteComCartao sistemaNovo
         else do
           putStrLn "Dados do Cartao invalidos! Tente novamente."
-          menuAposLogin cliente sistema
+          menuAposLogin clienteAtual sistema
     "4" -> do
-      case cartao cliente of
+      case cartao clienteAtual of
         Just cartaoAtual -> do
           if limite cartaoAtual >= 50.0 -- Verifica se o cliente tem limite suficiente para contratar o seguro.
             then do
               let novoCartao = cartaoAtual { seguro = True, limite = limite cartaoAtual - 50.0 } -- Atualiza o cartao com o seguro contratado.
-              let clienteComSeguro = cliente { cartao = Just novoCartao } -- Atribui o novo cartao ao cliente.
-              let sistemaNovo = clienteComSeguro : filter (/= cliente) sistema
+              let clienteComSeguro = clienteAtual { cartao = Just novoCartao } -- Atribui o novo cartao ao cliente.
+              let sistemaNovo = clienteComSeguro : filter (/= clienteAtual) sistema
               putStrLn "Seguro contratado com sucesso!"
               putStrLn "Valor do seguro: R$ 50.00"
               putStrLn $ "Novo limite do cartao: R$ " ++ show (limite novoCartao)
@@ -92,41 +96,41 @@ menuAposLogin cliente sistema = do
             else do -- Caso o cliente não tenha limite suficiente para contratar o seguro.
               putStrLn "Limite insuficiente para contratar o seguro!"
               putStrLn $ "O seguro custa R$ 50,00 e seu limite atual eh R$ " ++ show (limite cartaoAtual)
-              menuAposLogin cliente sistema
+              menuAposLogin clienteAtual sistema
         Nothing -> do
           putStrLn "Cliente nao possui cartao cadastrado!"
-          menuAposLogin cliente sistema
-    "5" -> do 
-      case cartao cliente of
+          menuAposLogin clienteAtual sistema
+    "5" -> do
+      case cartao clienteAtual of
         Just cartaoAtual -> do
-          putStrLn "Digite o nome do usuario que recebera o PIX:"
+          putStrLn "Digite a chave do usuario (email) que recebera o PIX:"
           nomeRecebedor <- getLine -- Procura o usuário recebedor no sistema
-          case find (\c -> nome c == nomeRecebedor) sistema of
+          case find (\c -> email c == nomeRecebedor) sistema of
             Just recebedor -> do
               putStrLn "Digite o valor do PIX: "
               valorStr <- getLine
               let valor = read valorStr :: Float
               if valor <= limite cartaoAtual
-                then do 
+                then do
                   let novoCartao = cartaoAtual { limite = limite cartaoAtual - valor } -- Atualiza o cartão do pagador (reduz o limite)
-                  let clienteAtualizado = cliente { cartao = Just novoCartao }
+                  let clienteAtualizado = clienteAtual { cartao = Just novoCartao }
                   let recebedorAtualizado = recebedor { saldoCliente = saldoCliente recebedor + valor } -- Atualiza o saldo do recebedor
-                  let sistemaNovo = recebedorAtualizado : clienteAtualizado : filter (\c -> nome c /= nome cliente && nome c /= nome recebedor) sistema -- Atualiza o sistema com ambos os clientes modificados
+                  let sistemaNovo = recebedorAtualizado : clienteAtualizado : filter (\c -> nome c /= nome clienteAtual && nome c /= nome recebedor) sistema -- Atualiza o sistema com ambos os clientes modificados
                   putStrLn "PIX realizado com sucesso!"
                   putStrLn $ "Novo limite do cartao: R$ " ++ show (limite novoCartao)
                   putStrLn $ "Valor transferido para " ++ nomeRecebedor ++ ": R$ " ++ show valor
                   menuAposLogin clienteAtualizado sistemaNovo
                 else do
                   putStrLn "Limite insuficiente no cartao!"
-                  menuAposLogin cliente sistema
+                  menuAposLogin clienteAtual sistema
             Nothing -> do
               putStrLn "Usuario nao encontrado no sistema!"
-              menuAposLogin cliente sistema
+              menuAposLogin clienteAtual sistema
         Nothing -> do
           putStrLn "Cliente nao possui cartao cadastrado!"
-          menuAposLogin cliente sistema
+          menuAposLogin clienteAtual sistema
     "6" -> do
-      case cartao cliente of
+      case cartao clienteAtual of
         Just cartaoAtual -> do
           putStrLn "Insira o codigo de barras do boleto: "
           codigoBarras <- getLine
@@ -136,17 +140,17 @@ menuAposLogin cliente sistema = do
           if valor <= limite cartaoAtual
             then do
               let novoCartao = cartaoAtual { limite = limite cartaoAtual - valor }
-              let clienteAtualizado = cliente { cartao = Just novoCartao }
-              let sistemaNovo = clienteAtualizado : filter (/= cliente) sistema
+              let clienteAtualizado = clienteAtual { cartao = Just novoCartao }
+              let sistemaNovo = clienteAtualizado : filter (/= clienteAtual) sistema
               putStrLn "Conta paga com sucesso!"
               putStrLn $ "Novo limite do cartao: R$ " ++ show (limite novoCartao)
               menuAposLogin clienteAtualizado sistemaNovo
             else do
               putStrLn "Limite insuficiente no cartao!"
-              menuAposLogin cliente sistema
+              menuAposLogin clienteAtual sistema
         Nothing -> do
           putStrLn "Cliente nao possui cartao cadastrado!"
-          menuAposLogin cliente sistema
+          menuAposLogin clienteAtual sistema
 
     "7" -> menuInicial sistema
     _ -> do
@@ -178,20 +182,18 @@ menuPrincipal cliente sistema = do
 -- Menu de compras.
 menuCompras :: Cliente -> Sistema -> Loja -> IO Sistema
 menuCompras cliente sistema loja = do
-  putStrLn "\n--- Lojas ---"
-  putStrLn "1. Visualizar Loja e Produtos"
-  putStrLn "2. Comprar"
-  putStrLn "3. Voltar"
+    let clienteAtual = fromMaybe cliente (find (\ c -> nome c == nome cliente) sistema)
+    putStrLn "\n--- Menu Compras ---"
+    exibeLoja loja
+    putStrLn "\nDigite o nome do produto que deseja comprar (ou 'sair' para voltar):"
+    nomeProduto <- getLine
 
-  opcao <- getLine
-  case opcao of
-    "1" -> do
-      exibeLoja loja
-      menuCompras cliente sistema loja
-    "2" -> do
-        menuCompras cliente sistema loja
-    "3" -> do
-      return sistema
+    if nomeProduto == "sair"
+        then return sistema
+        else do
+            let maybeProduto = retornaProduto loja nomeProduto
+            novoSistema <- compra clienteAtual maybeProduto sistema
+            menuCompras clienteAtual novoSistema loja
 
 main :: IO ()
 main = do

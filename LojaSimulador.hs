@@ -2,8 +2,8 @@ module LojaSimulador where
 
 import Data.List( find)
 import Cliente
---definição de loja
 
+--Definição de loja
 data Produto = Produto 
     {   nomeProduto :: String,
         valor :: Float
@@ -42,22 +42,32 @@ exibeProdutos (p:ps) = do
 --Funcao de compra de produto
 compra :: Cliente -> Maybe Produto -> Sistema -> IO Sistema
 compra cliente Nothing sistema = do
-    putStrLn "Produto não existe"
+    putStrLn "Produto nao existe"
     return sistema
-compra cliente (Just produto) sistema
-    | saldoSuficiente = do 
-        putStrLn "Compra realizada com sucesso!"
-        let novoSaldo = saldoCliente cliente - valor produto
-        putStrLn $ "Novo saldo: R$ " ++ show novoSaldo
+compra cliente (Just produto) sistema = 
+    case cartao cliente of
+        Just cartaoAtual -> do
+            if limite cartaoAtual >= valor produto
+                then do 
+                    -- Atualiza o cartão reduzindo o limite
+                    let novoCartao = cartaoAtual { limite = limite cartaoAtual - valor produto }
+                    let clienteAtualizado = cliente { cartao = Just novoCartao }
+                    -- Atualiza o sistema removendo o cliente antigo e adicionando o atualizado
+                    let sistemaNovo = clienteAtualizado : filter (\c -> nome c /= nome cliente) sistema
+                    putStrLn "Compra realizada com sucesso!"
+                    putStrLn $ "Valor da compra: R$ " ++ show (valor produto)
+                    putStrLn $ "Novo limite do cartao: R$ " ++ show (limite novoCartao)
+                    return sistemaNovo
+                else do
+                    putStrLn "Limite insuficiente no cartao!"
+                    putStrLn $ "O produto custa R$ " ++ show (valor produto) 
+                    putStrLn $ "Seu limite atual eh R$ " ++ show (limite cartaoAtual)
+                    return sistema
+        Nothing -> do
+            putStrLn "Cliente nao possui cartao cadastrado!"
+            return sistema
 
-        return fazerRecarga Cliente cliente (negate novoSaldo) sistema
-    | otherwise = do
-        putStrLn "Saldo insuficiente para realizar a compra."
-        return sistema
-    where
-        saldoSuficiente = saldoCliente cliente >= valor produto
-
---retornar produto
+--Retornar produto
 retornaProduto :: Loja -> String -> Maybe Produto
 retornaProduto loja nome = 
     buscarProduto(produtos loja) nome
@@ -67,8 +77,8 @@ retornaProduto loja nome =
         buscarProduto (p:ps) nome   
             | nomeProduto p == nome = Just p
             | otherwise = buscarProduto ps nome
---Loja exemplo
 
+--Loja exemplo
 exemploLojaProdutos :: Loja 
 exemploLojaProdutos = Loja 
     {   nomeLoja = "Loja de Roupa", 
@@ -77,4 +87,4 @@ exemploLojaProdutos = Loja
     where
         produto1 = Produto { nomeProduto = "Camiseta", valor = 39.90}
         produto2 = Produto { nomeProduto = "Cueca", valor = 60}
-        produto3 = Produto { nomeProduto = "Meia", valor = 2.50} 
+        produto3 = Produto { nomeProduto = "Meia", valor = 2.50}

@@ -95,19 +95,19 @@ autenticarCliente sistema = do
 atualizarDadosCliente :: Cliente -> Sistema -> IO Sistema
 atualizarDadosCliente cliente sistema = do
   putStrLn "\n--- Atualizar Dados Cadastrais ---"
-  putStrLn "Deixe em branco os campos que não deseja alterar."
-  putStr $ "Nome atual: " ++ nome cliente ++ "\nNovo Nome: "
+  putStrLn "Deixe em branco os campos que nao deseja alterar."
+  putStrLn $ "Nome atual: " ++ nome cliente ++ "\nNovo Nome: "
   novoNome <- getLine
-  putStr $ "Data de Nascimento atual: " ++ dataNascimento cliente ++ "\nNova Data de Nascimento (DD/MM/AAAA): "
+  putStrLn $ "Data de Nascimento atual: " ++ dataNascimento cliente ++ "\nNova Data de Nascimento (DD/MM/AAAA): "
   novaDataNascimento <- getLine
-  putStr $ "CPF atual: " ++ cpf cliente ++ "\nNovo CPF: "
+  putStrLn $ "CPF atual: " ++ cpf cliente ++ "\nNovo CPF: "
   novoCpf <- getLine
-  putStr $ "Endereço atual: " ++ endereco cliente ++ "\nNovo Endereço: "
+  putStrLn $ "Endereco atual: " ++ endereco cliente ++ "\nNovo Endereco: "
   novoEndereco <- getLine
-  putStr $ "Telefone atual: " ++ telefone cliente ++ "\nNovo Telefone: "
+  putStrLn $ "Telefone atual: " ++ telefone cliente ++ "\nNovo Telefone: "
   novoTelefone <- getLine
   let exemplo = show (saldoCliente cliente)
-  putStr $ "Saldo atual: " ++  exemplo ++ "\n Novo Saldo: "
+  putStrLn $ "Saldo atual: " ++  exemplo ++ "\n Novo Saldo: "
   novoSaldo <- getLine
   -- Atualiza apenas os campos que foram modificados
   let nomeAtualizado = if null novoNome then nome cliente else novoNome
@@ -134,8 +134,7 @@ atualizarDadosCliente cliente sistema = do
   putStrLn "Dados atualizados com sucesso!"
   return sistemaAtualizado
 
---Jefferson, função para fazer uma recarga de saldo no cliente, recebe o cliente, um valor para recarga, o sistema e atualiza ele
-
+-- Função para fazer uma recarga de saldo no cliente, recebe o cliente, um valor para recarga, o sistema e atualiza ele
 fazerRecarga :: Cliente -> Float -> Sistema -> IO Sistema
 fazerRecarga cliente recarga sistema = do
   -- Faz a recarga
