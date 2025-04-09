@@ -1,60 +1,18 @@
-% Funções auxiliares para manipulação de clientes e cartões
+% Módulo de funções utilitárias e persistência de dados.
+% Aqui são definidas funções auxiliares para manipulação de dados e persistência em arquivo txt.
 
-% Atualizar limite do cartão
-atualizar_limite_cartao(Cliente, CartaoAntigo, NovoLimite) :-
-    CartaoAntigo = cartao(Num,Tit,Val,Cvv,_,Seg),  % Padroniza extração
-    NovoCartao = cartao(Num,Tit,Val,Cvv,NovoLimite,Seg),
-    atualizar_cliente_cartao(Cliente, NovoCartao).
-
-% Atualizar cartão do cliente
-atualizar_cliente_cartao(ClienteAntigo, NovoCartao) :-
-    ClienteAntigo = cliente(Nome,Email,Senha,Data,CPF,End,Tel,Saldo,_),
-    NovoCliente = cliente(Nome,Email,Senha,Data,CPF,End,Tel,Saldo,NovoCartao),
-    sistema(Clientes),
-    delete(Clientes, ClienteAntigo, ClientesSemAntigo),
-    append(ClientesSemAntigo, [NovoCliente], NovosClientes),
-    retract(sistema(Clientes)),
-    assert(sistema(NovosClientes)),
-    salvar_dados.  % Salva após atualizar
-
-% Atualizar saldo do cliente
+% Atualiza o saldo do cliente.
 atualizar_saldo(ClienteAntigo, NovoSaldo) :-
-    % Remove o cliente antigo do sistema
     sistema(Clientes),
     ClienteAntigo = cliente(Nome,Email,Senha,Data,CPF,End,Tel,_,Cartao),
     delete(Clientes, ClienteAntigo, ClientesSemAntigo),
-    
-    % Cria e adiciona o novo cliente
     NovoCliente = cliente(Nome,Email,Senha,Data,CPF,End,Tel,NovoSaldo,Cartao),
     append(ClientesSemAntigo, [NovoCliente], NovosClientes),
-    
-    % Atualiza o sistema
     retract(sistema(Clientes)),
     assert(sistema(NovosClientes)),
-    
-    % Salva no arquivo
     salvar_dados.
 
-% Validar formato de email
-validar_email(Email) :-
-    sub_string(Email, _, _, _, '@'),
-    sub_string(Email, _, _, _, '.').
-
-% Validar formato de CPF
-validar_cpf(CPF) :-
-    string_length(CPF, 11),
-    string_chars(CPF, Chars),
-    maplist(char_type(_, digit), Chars).
-
-% Validar data de nascimento
-validar_data(Data) :-
-    sub_string(Data, 2, 1, _, '/'),
-    sub_string(Data, 5, 1, _, '/'),
-    string_length(Data, 10).
-
-% Funções de atualização do sistema
-
-% Remove duplicatas baseadas no email
+% Remove clientes duplicados do sistema.
 remover_duplicatas([], Acc, Acc).
 remover_duplicatas([Cliente|Resto], Acc, Resultado) :-
     Cliente = cliente(_,Email,_,_,_,_,_,_,_),
@@ -65,9 +23,7 @@ remover_duplicatas([Cliente|Resto], Acc, Resultado) :-
         remover_duplicatas(Resto, [Cliente|Acc], Resultado)
     ).
 
-
-% Funções para persistência de dados
-% Salvar dados do sistema em arquivo
+% Salva os dados do sistema em um arquivo txt (persistência dos dados).
 salvar_dados :-
     sistema(ClientesComDuplicata),
     remover_duplicatas(ClientesComDuplicata, [], ClientesSemDuplicata),
@@ -77,7 +33,7 @@ salvar_dados :-
             write(Stream, '.\n'))),
     close(Stream).
 
-% Carregar dados do sistema do arquivo
+% Carrega os dados do sistema do arquivo txt.
 carregar_dados :-
     retractall(sistema(_)),
     assert(sistema([])),
@@ -90,7 +46,7 @@ carregar_dados :-
     ;
         true).
 
-% Ler clientes do arquivo
+% Lê os dados dos clientes do arquivo txt.
 ler_clientes(Stream) :-
     read(Stream, Cliente),
     (Cliente == end_of_file ->
@@ -103,7 +59,7 @@ ler_clientes(Stream) :-
         ler_clientes(Stream)
     ).
 
-% Atualizar cartão no arquivo
+% Atualiza cartão no arquivo.
 atualizar_cartao_arquivo(ClienteAntigo, NovoCartao) :-
     sistema(Clientes),
     ClienteAntigo = cliente(Nome,Email,Senha,Data,CPF,End,Tel,Saldo,_),
@@ -114,8 +70,9 @@ atualizar_cartao_arquivo(ClienteAntigo, NovoCartao) :-
     assert(sistema(NovosClientes)),
     salvar_dados.
 
-% Escolher método de pagamento
-escolher_metodo_pagamento(Cliente, Valor, MetodoEscolhido) :-
+% Realiza a escolha do método de pagamento (saldo ou cartão) e atualiza os dados do cliente.
+% Se o saldo for suficiente, atualiza o saldo. Se o cartão for suficiente, atualiza o limite do cartão.
+escolher_metodo_pagamento(Cliente, Valor) :-
     carregar_dados,
     sistema(Clientes),
     cliente(Nome,Email,Senha,_,_,_,_,_,_) = Cliente,
@@ -129,7 +86,6 @@ escolher_metodo_pagamento(Cliente, Valor, MetodoEscolhido) :-
     atom_number(OpcaoStr, Opcao),
     (Opcao = 1 ->
         (Saldo >= Valor ->
-            MetodoEscolhido = saldo,
             NovoSaldo is Saldo - Valor,
             atualizar_saldo(ClienteAtual, NovoSaldo)
         ;
@@ -139,7 +95,6 @@ escolher_metodo_pagamento(Cliente, Valor, MetodoEscolhido) :-
         (Cartao \= null ->
             cartao(Num,Tit,Val,Cvv,Limite,Seguro) = Cartao,
             (Limite >= Valor ->
-                MetodoEscolhido = cartao,
                 NovoLimite is Limite - Valor,
                 NovoCartao = cartao(Num,Tit,Val,Cvv,NovoLimite,Seguro),
                 atualizar_cartao_arquivo(ClienteAtual, NovoCartao)

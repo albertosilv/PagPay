@@ -1,31 +1,36 @@
+% Módulo de gerenciamento de clientes e suas operações.
+
+% Estrutura de dados:
+% cliente(Nome, Email, Senha, DataNasc, CPF, Endereco, Telefone, Saldo, Cartao)
+% cartao(Numero, Titular, Validade, CVV, Limite, Seguro)
 :- dynamic cliente/9.
 :- dynamic cartao/6.
 :- dynamic sistema/1.
 :- [utils].
 
+
+% Inicializa o sistema.
 :- initialization(init_sistema).
 
 init_sistema :-
     retractall(sistema(_)),
     assert(sistema([])).
 
-% Estrutura cliente: cliente(Nome, Email, Senha, DataNasc, CPF, Endereco, Telefone, Saldo, Cartao)
-% Estrutura cartao: cartao(Numero, Titular, Validade, CVV, Limite, Seguro)
-
-% Validações básicas do cartão
+% Valida dados básicos do cartão (número, titular, validade, CVV).
+% O número deve ter 16 dígitos, a validade deve ter 5 caracteres (MM/AA) e o CVV deve ter 3 dígitos (padrão).
 validar_cartao(Numero, Titular, Validade, CVV) :-
     string_length(Numero, 16),
     Titular \= '',
     string_length(Validade, 5),
     string_length(CVV, 3).
 
-% Buscar cliente
+% Busca cliente no sistema.
 buscar_cliente(Email, Senha, Cliente) :-
     sistema(Clientes),
     member(Cliente, Clientes),
     Cliente = cliente(_, Email, Senha, _, _, _, _, _, _).
 
-% Menu de cadastro
+% Interface para cadastro de um novo cliente.
 menu_cadastro :-
     writeln('\n--- Cadastro de Cliente ---'),
     write('Nome: '), 
@@ -48,7 +53,7 @@ menu_cadastro :-
     cadastrar_cliente(Nome, Email, Senha, DataNasc, CPF, End, Tel, Saldo),
     menu_inicial.
 
-% Cadastrar cliente
+% Cadastra o novo cliente no sistema.
 cadastrar_cliente(Nome, Email, Senha, DataNasc, CPF, End, Tel, Saldo) :-
     sistema(ClientesAtuais),
     NovoCliente = cliente(Nome,Email,Senha,DataNasc,CPF,End,Tel,Saldo,null),
@@ -58,7 +63,8 @@ cadastrar_cliente(Nome, Email, Senha, DataNasc, CPF, End, Tel, Saldo) :-
     salvar_dados,
     writeln('Cliente cadastrado com sucesso!').
 
-% Menu de cadastro de cartão
+% Interface para cadastro de cartão.
+% Se já tiver um cartão cadastrado, sobrescreve o existente.
 menu_cadastro_cartao(Cliente) :-
     carregar_dados,
     sistema(Clientes),
@@ -91,7 +97,7 @@ menu_cadastro_cartao(Cliente) :-
     ;
         writeln('Dados do cartao invalidos!')).
 
-% Contratar seguro
+% Realiza contratação de seguro do cartão se o limite for maior do que 50.
 contratar_seguro(Cliente) :-
     carregar_dados,
     sistema(Clientes),
@@ -114,7 +120,8 @@ contratar_seguro(Cliente) :-
     ;
         writeln('Cliente nao possui cartao cadastrado!')).
 
-% Fazer PIX
+% Realiza transferência PIX entre usuários.
+% Também permite que o destinatário faça um PIX para sí mesmo, usando o limite do seu cartão para aumentar seu saldo.
 fazer_pix(Cliente) :-
     carregar_dados,
     sistema(Clientes),
@@ -131,18 +138,16 @@ fazer_pix(Cliente) :-
         read_line_to_string(user_input, ValorStr),
         atom_number(ValorStr, Valor),
         
-        (escolher_metodo_pagamento(ClienteAtual, Valor, _) ->
+        (escolher_metodo_pagamento(ClienteAtual, Valor) ->
             carregar_dados,
             sistema(ClientesAtualizados),
             member(ClienteRemetente, ClientesAtualizados),
             ClienteRemetente = cliente(Nome,Email,Senha,_,_,_,_,SaldoAtual,_),
             
-            % Se o destinatário é o próprio remetente
             (Email = EmailDestino ->
                 NovoSaldo is SaldoAtual + Valor,
                 atualizar_saldo(ClienteRemetente, NovoSaldo)
             ;
-                % Se não, atualiza apenas o saldo do destinatário
                 NovoSaldoDestino is SaldoDestino + Valor,
                 atualizar_saldo(Destinatario, NovoSaldoDestino)
             ),
@@ -152,7 +157,7 @@ fazer_pix(Cliente) :-
     ;
         writeln('Destinatario nao encontrado!')).
 
-% Pagar conta
+% Realiza pagamento de contas.
 pagar_conta(Cliente) :-
     carregar_dados,
     sistema(Clientes),
@@ -164,12 +169,12 @@ pagar_conta(Cliente) :-
     read_line_to_string(user_input, ValorStr),
     atom_number(ValorStr, Valor),
     
-    (escolher_metodo_pagamento(ClienteAtual, Valor, _) ->
+    (escolher_metodo_pagamento(ClienteAtual, Valor) ->
         writeln('Conta paga com sucesso!')
     ;
         writeln('Nao foi possivel pagar a conta.')).
 
-% Exibir opções do cliente
+% Exibe dados do cliente.
 exibir_opcoes(Cliente) :-
     sistema(Clientes),
     cliente(Nome,Email,Senha,_,_,_,_,_,_) = Cliente,

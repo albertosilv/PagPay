@@ -1,9 +1,11 @@
+% Módulo principal que controla o fluxo do programa.
 :- [cliente].
 :- [loja].
 :- [utils].
 
 :- initialization(main).
 
+% Inicializa o sistema e apresenta o menu inicial.
 main :-
     carregar_dados,
     writeln('Bem-vindo ao Sistema de Gerenciamento de Clientes!'),
@@ -19,6 +21,7 @@ menu_inicial :-
     atom_number(OpcaoStr, Opcao),
     processar_opcao_inicial(Opcao).
 
+% Processa as opções do menu inicial.
 processar_opcao_inicial(1) :- menu_login.
 processar_opcao_inicial(2) :- menu_cadastro.
 processar_opcao_inicial(3) :- 
@@ -28,6 +31,7 @@ processar_opcao_inicial(_) :-
     writeln('Opcao invalida!'),
     menu_inicial.
 
+% Faz autenticação do usuário.
 menu_login :-
     write('Email: '),
     read_line_to_string(user_input, Email),
@@ -39,6 +43,7 @@ menu_login :-
         writeln('Email ou senha incorretos!'),
         menu_inicial).
 
+% Menu principal do sistema aonde o cliente, já logado, pode acessar diversas funcionalidades.
 menu_principal(Cliente) :-
     writeln('\n--- Menu Principal ---'),
     writeln('1. Exibir Dados'),
@@ -53,6 +58,7 @@ menu_principal(Cliente) :-
     atom_number(OpcaoStr, Opcao),
     processar_opcao_principal(Opcao, Cliente).
 
+% Processa as opções do menu principal:
 processar_opcao_principal(1, Cliente) :- 
     exibir_opcoes(Cliente),
     menu_principal(Cliente).
