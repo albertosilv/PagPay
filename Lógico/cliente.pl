@@ -92,7 +92,7 @@ menu_cadastro_cartao(Cliente) :-
     
     (validar_cartao(Numero, Titular, Validade, CVV) ->
         NovoCartao = cartao(Numero, Titular, Validade, CVV, Limite, false),
-        atualizar_cliente_cartao(ClienteAtual, NovoCartao),
+        atualizar_cartao_arquivo(ClienteAtual, NovoCartao),  
         writeln('Cartao cadastrado com sucesso!')
     ;
         writeln('Dados do cartao invalidos!')).
